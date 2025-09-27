@@ -1,0 +1,124 @@
+CREATE DATABASE class_session;
+
+USE class_session;
+
+CREATE TABLE Employees_data (
+    emp_id INT PRIMARY KEY,
+    emp_name VARCHAR(50),
+    manager_id INT NULL,
+    salary DECIMAL(10,2),
+    email_id VARCHAR(100),
+    hire_date DATE,
+    department VARCHAR(50),
+    job_title VARCHAR(50)
+);
+
+INSERT INTO Employees_data (emp_id, emp_name, manager_id, salary, email_id, hire_date, department, job_title)
+VALUES
+(1, 'Ravi Kumar',   NULL,   90000, 'ravi.kumar@gmail.com', '2013-01-10', 'Management', 'CEO'),
+(2, 'Anita Sharma', 1,      70000, 'anita.sharma@gmail.com', '2016-03-15', 'Finance', 'Manager'),
+(3, 'Rajesh Gupta', 1,      75000, 'rajesh.gupta@outlook.com', '2017-07-23', 'IT', 'Manager'),
+(4, 'Meena Joshi',  2,      71000, 'meena.joshi@gmail.com',  '2018-06-01', 'Finance', 'Analyst'),
+(5, 'Suresh Raina', 2,      52000, 'suresh.raina@outlook.com', '2019-08-19', 'Finance', 'Analyst'),
+(6, 'Alok Verma',   3,      60000, 'alok.verma@outlook.com',   '2020-01-12', 'IT', 'Developer'),
+(7, 'Nisha Patel',  3,      62000, 'nisha.patel@gmail.com',  '2021-05-05', 'IT', 'Developer'),
+(8, 'Vikas Yadav',  3,      62000, 'vikas.yadav@gmail.com',  '2022-02-11', 'IT', 'Intern'),
+(9, 'Priya Singh',  2,      45000, 'priya.singh@outlook.com',  '2022-07-01', 'Finance', 'Assistant'),
+(10, 'Amit Tiwari', 1,      65000, 'amit.tiwari@gmail.com',  '2019-11-30', 'HR', 'Manager');
+
+-- 1 Find the employee whose salary is more than his manager salary
+
+SELECT e.emp_name as Employee, e.salary as Employee_Salary, m.emp_name AS Manager, m.salary as Manager_Salary
+FROM Employees_data e JOIN Employees_data m ON e. emp_id = m.manager_id
+WHERE e.salary > m.salary;
+
+-- 2. Create a hierarchy report → show each employee, their manager,  their manager’s manager  and  director(manager_id is null)
+SELECT 
+  e.emp_name AS Employee,
+  m.emp_name AS Manager,
+  mm.emp_name AS Managers_Manager,
+  d.emp_name AS Director
+FROM Employees_data e
+LEFT JOIN Employees_data m ON e.manager_id = m.emp_id
+LEFT JOIN Employees_data mm ON m.manager_id = mm.emp_id
+LEFT JOIN Employees_data d ON mm.manager_id = d.emp_id
+WHERE e.emp_id != 1;
+
+
+-- 3  Find employees under the same manager who also earn identical salaries.
+
+SELECT manager_id, salary, COUNT(*) AS count
+FROM Employees_data
+GROUP BY manager_id, salary
+HAVING COUNT(*) > 1;
+
+-- 4 Group the employee on the basis of their domain id  and department
+
+SELECT 
+  SUBSTRING(email_id, LOCATE('@', email_id) + 1) AS domain,
+  department,
+  COUNT(*) AS employee_count
+FROM Employees_data
+GROUP BY domain, department;
+
+-- 5 find the 2nd highest earning employee in eaach department
+
+SELECT DISTINCT salary FROM Employees_Data 
+ORDER BY salary DESC LIMIT 1 offset 1;
+
+-- OR
+
+SELECT emp_id, emp_name, salary, department
+FROM (
+SELECT *, DENSE_RANK() OVER(Partition by department order by salary DESC) AS rank
+FROM Employee_Data
+) ranked
+WHERE rank = 2;
+
+-- 6.  Find the employee who has more salary than avg salary
+
+SELECT * FROM Employees_data WHERE salary > (SELECT AVG(SALARY) FROM Employees_data);
+
+-- 7 Find departments where the average salary is more than 55,000.
+
+SELECT department, Round(AVG(salary),0) AS avg_salary
+FROM Employees_data
+GROUP BY department
+HAVING Round(AVG(salary),0) > 55000;
+
+-- 8  Get a list of managers who do not have any direct reportees.
+
+SELECT m.emp_id, m.emp_name
+FROM Employees_data m
+WHERE m.emp_id NOT IN (
+  SELECT distinct manager_id FROM Employees_data WHERE manager_id IS NOT NULL
+);
+
+-- 9. Extract the email domain (e.g., gmail.com / outlook.com) and count how many employees use each domain
+SELECT 
+  SUBSTRING(email_id, LOCATE('@', email_id) + 1) AS domain,
+  COUNT(*) AS domain_count
+FROM Employees_data
+GROUP BY domain;
+
+-- 10 Find the average salary difference between managers and their direct reportees
+
+SELECT 
+  m.emp_id AS Manager_ID,
+  m.emp_name AS Manager_Name,
+  ROUND(AVG(r.salary) - m.salary, 2) AS Avg_Salary_Diff
+FROM Employees_data m
+JOIN Employees_data r ON r.manager_id = m.emp_id
+GROUP BY m.emp_id, m.emp_name;
+
+
+-- 11  List employees hired in the same year as their manager
+
+SELECT e.emp_name AS Employee, m.emp_name AS Manager, YEAR(e.hire_date) AS Hire_Year
+FROM Employees_data e
+JOIN Employees_data m ON e.manager_id = m.emp_id
+WHERE YEAR(e.hire_date) = YEAR(m.hire_date);
+
+SELECT * FROM Employees_Data;
+
+
